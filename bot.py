@@ -152,7 +152,7 @@ JSON formatida javob bering:
 
 def run_web_server():
     port = int(os.environ.get("PORT", "10000"))
-[13.09.2026 1:28] Odil: app.run(
+app.run(
         host="0.0.0.0",
         port=port,
     )
