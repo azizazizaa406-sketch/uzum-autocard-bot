@@ -21,7 +21,7 @@ OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-app = Flask(name)
+app = Flask(__name__)
 
 
 @app.get("/")
