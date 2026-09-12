@@ -1,38 +1,75 @@
-import os, json, base64, asyncio
+[13.09.2026 1:28] Odil: import os
+import json
+import base64
+import threading
 from pathlib import Path
+
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+    filters,
+)
 from openai import OpenAI
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-TMP = Path("tmp")
-TMP.mkdir(exist_ok=True)
+app = Flask(name)
+
+
+@app.get("/")
+def home():
+    return "Uzum AutoCard Bot is running."
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    kb = [[InlineKeyboardButton("📸 Tovar rasmi yuborish", callback_data="new")]]
+    keyboard = [
+        [InlineKeyboardButton("📸 Tovar rasmi yuborish", callback_data="new")]
+    ]
+
     await update.message.reply_text(
         "🚗 Uzum AutoCard botiga xush kelibsiz!\n\n"
-        "Mahsulot rasmini yuboring. Men nom, SEO tavsif, mos avtomobillar va kalit so‘zlarni tayyorlayman.",
-        reply_markup=InlineKeyboardMarkup(kb)
+        "Mahsulot rasmini yuboring — men nom, SEO tavsif, "
+        "mos avtomobillar va kalit so‘zlarni tayyorlayman.",
+        reply_markup=InlineKeyboardMarkup(keyboard),
     )
+
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.answer()
-    await update.callback_query.message.reply_text("📸 Mahsulot rasmini yuboring.")
+    await update.callback_query.message.reply_text(
+        "📸 Mahsulot rasmini yuboring."
+    )
+
 
 async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = await update.message.reply_text("🔎 Mahsulot tahlil qilinmoqda...")
-    p = await update.message.photo[-1].get_file()
-    path = TMP / f"{update.effective_user.id}.jpg"
-    await p.download_to_drive(path)
+    message = await update.message.reply_text(
+        "🔎 Mahsulot tahlil qilinmoqda..."
+    )
 
-    data = base64.b64encode(path.read_bytes()).decode()
-    prompt = """Siz Uzum marketplace uchun avtomobil ehtiyot qismlari bo‘yicha SEO mutaxassisisiz.
-Rasmni tahlil qiling. Noma'lum ma'lumotni uydirmang.
-Quyidagi JSON formatida javob bering:
+    telegram_file = await update.message.photo[-1].get_file()
+
+    path = Path("/tmp") / f"autocard_{update.effective_user.id}.jpg"
+
+    await telegram_file.download_to_drive(path)
+
+    image_data = base64.b64encode(path.read_bytes()).decode()
+
+    prompt = """
+Siz Uzum marketplace uchun avtomobil ehtiyot qismlari SEO mutaxassisisisiz.
+
+Rasmni tahlil qiling.
+Rasmda ko‘rinmagan ma'lumotni uydirmang.
+
+JSON formatida javob bering:
+
 {
 "title_uz":"",
 "title_ru":"",
@@ -46,49 +83,107 @@ Quyidagi JSON formatida javob bering:
 "benefits":["","","","",""]
 }
 """
+
     try:
-        r = client.responses.create(
-            model="gpt-5.6",
-            input=[{
-                "role":"user",
-                "content":[
-                    {"type":"input_text","text":prompt},
-                    {"type":"input_image","image_url":f"data:image/jpeg;base64,{data}"}
-                ]
-            }]
+        response = client.responses.create(
+            model="gpt-4.1-mini",
+            input=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": prompt,
+                        },
+                        {
+                            "type": "input_image",
+                            "image_url": f"data:image/jpeg;base64,{image_data}",
+                        },
+                    ],
+                }
+            ],
         )
-        text = r.output_text
-        # Try to extract JSON
-        start_i, end_i = text.find("{"), text.rfind("}")
-        obj = json.loads(text[start_i:end_i+1])
-        out = (
-            f"🛒 <b>UZUM TOVAR KARTOCHKASI</b>\n\n"
-            f"<b>🇺🇿 Nomi:</b> {obj.get('title_uz','')}\n"
-            f"<b>🇷🇺 Название:</b> {obj.get('title_ru','')}\n"
-            f"<b>📂 Kategoriya:</b> {obj.get('category','')}\n"
-            f"<b>🏷 Brend:</b> {obj.get('brand','')}\n"
-            f"<b>🔢 OEM:</b> {obj.get('oem','')}\n"
-            f"<b>🚗 Mosligi:</b> {obj.get('compatibility','')}\n\n"
-            f"<b>🇺🇿 Tavsif:</b>\n{obj.get('description_uz','')}\n\n"
-            f"<b>🇷🇺 Описание:</b>\n{obj.get('description_ru','')}\n\n"
-            f"<b>🔑 Kalit so‘zlar:</b>\n{obj.get('keywords','')}\n\n"
-            f"<b>⭐ Afzalliklar:</b>\n" +
-            "\n".join("✅ "+x for x in obj.get("benefits", []))
+
+        text = response.output_text
+
+        start_index = text.find("{")
+        end_index = text.rfind("}")
+
+        data = json.loads(
+            text[start_index:end_index + 1]
         )
-        await msg.edit_text(out, parse_mode="HTML")
-        await update.message.reply_photo(photo=path.open("rb"), caption="🎨 Keyingi bosqich: 1080×1440 infografika generatorini ulash mumkin.")
-    except Exception as e:
-        await msg.edit_text("❌ Xatolik yuz berdi. API kalitlari va bot sozlamalarini tekshiring.")
-        print(e)
+
+        benefits = "\n".join(
+            "✅ " + item
+            for item in data.get("benefits", [])
+            if item
+        )
+
+        result = (
+            "🛒 <b>UZUM TOVAR KARTOCHKASI</b>\n\n"
+            f"<b>🇺🇿 Nomi:</b> {data.get('title_uz', '')}\n"
+            f"<b>🇷🇺 Название:</b> {data.get('title_ru', '')}\n"
+            f"<b>📂 Kategoriya:</b> {data.get('category', '')}\n"
+            f"<b>🏷 Brend:</b> {data.get('brand', '')}\n"
+            f"<b>🔢 OEM:</b> {data.get('oem', '')}\n"
+            f"<b>🚗 Mosligi:</b> {data.get('compatibility', '')}\n\n"
+            f"<b>🇺🇿 Tavsif:</b>\n"
+            f"{data.get('description_uz', '')}\n\n"
+            f"<b>🇷🇺 Описание:</b>\n"
+            f"{data.get('description_ru', '')}\n\n"
+            f"<b>🔑 Kalit so‘zlar:</b>\n"
+            f"{data.get('keywords', '')}\n\n"
+            f"<b>⭐ Afzalliklar:</b>\n"
+            f"{benefits}"
+        )
+
+        await message.edit_text(
+            result,
+            parse_mode="HTML",
+        )
+
+    except Exception as error:
+        print("ERROR:", repr(error))
+
+        await message.edit_text(
+            "❌ Xatolik yuz berdi. Render Logs bo‘limini tekshiring."
+        )
+
+
+def run_web_server():
+    port = int(os.environ.get("PORT", "10000"))
+[13.09.2026 1:28] Odil: app.run(
+        host="0.0.0.0",
+        port=port,
+    )
+
 
 def main():
-    if not BOT_TOKEN or not OPENAI_API_KEY:
-        raise RuntimeError("BOT_TOKEN va OPENAI_API_KEY environment variable sifatida berilishi kerak.")
-    app = Application.builder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button))
-    app.add_handler(MessageHandler(filters.PHOTO, photo))
-    app.run_polling()
+    threading.Thread(
+        target=run_web_server,
+        daemon=True,
+    ).start()
 
-if __name__ == "__main__":
+    bot = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .build()
+    )
+
+    bot.add_handler(
+        CommandHandler("start", start)
+    )
+
+    bot.add_handler(
+        CallbackQueryHandler(button)
+    )
+
+    bot.add_handler(
+        MessageHandler(filters.PHOTO, photo)
+    )
+
+    bot.run_polling()
+
+
+if name == "main":
     main()
