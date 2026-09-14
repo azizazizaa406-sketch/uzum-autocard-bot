@@ -230,6 +230,15 @@ JSON tashqarisida hech qanday izoh yozmang.
 
         await message.edit_text(
             "❌ Xatolik yuz berdi. Render Logs bo‘limini tekshiring."
+            keyboard = [
+    [InlineKeyboardButton("🎨 Infografika yaratish", callback_data="infographic")]
+]
+
+await message.reply_text(
+    "Mahsulot kartasi tayyor ✅\n\n"
+    "Endi premium Uzum infografika yaratishingiz mumkin:",
+    reply_markup=InlineKeyboardMarkup(keyboard)
+)
         )
 
 
