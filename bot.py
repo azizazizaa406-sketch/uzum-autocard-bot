@@ -237,7 +237,9 @@ JSON tashqarisida hech qanday izoh yozmang.
         print("ERROR:", repr(error))
 
         await message.edit_text(
-            "❌ Xatolik yuz berdi. Render Logs bo‘limini tekshiring."
+            "❌ Xatolik yuz berdi. Render 
+            Logs bo‘limini tekshiring."
+        )
         
 
 
