@@ -48,9 +48,67 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass
 
-    await update.callback_query.message.reply_text(
-        "📸 Mahsulot rasmini yuboring."
-    )
+    if update.callback_query.data == "infographic":
+        await update.callback_query.message.reply_text(
+            "🎨 Infografika tayyorlanmoqda...\n\n"
+            "⏳ Bir oz kuting."
+        )
+
+        try:
+            image_path = context.user_data.get("image_path")
+
+            if not image_path:
+                await update.callback_query.message.reply_text(
+                    "❌ Mahsulot rasmi topilmadi. Rasmni qayta yuboring."
+                )
+                return
+
+            result = client.images.edit(
+                model="gpt-image-2",
+                image=open(image_path, "rb"),
+                prompt="""
+Create a premium automotive marketplace product image.
+
+IMPORTANT:
+- Preserve the exact product from the reference image.
+- Do not change the product shape, construction, holes, mounting points,
+  dimensions, labels or visible details.
+- Remove the original background.
+- Put the product on a clean #EFEFEF light gray background.
+- Product centered and large.
+- Professional studio lighting.
+- Realistic shadows and reflections.
+- Premium Korean automotive parts advertising style.
+- Clean commercial product photography.
+- Vertical marketplace composition.
+- NO text.
+- NO logos.
+- NO watermark.
+""",
+                size="1024x1536",
+                quality="medium",
+            )
+
+            image_bytes = base64.b64decode(result.data[0].b64_json)
+
+            from io import BytesIO
+
+            await update.callback_query.message.reply_photo(
+                photo=BytesIO(image_bytes),
+                caption="🎨 Premium infografika tayyor!"
+            )
+
+        except Exception as error:
+            print("INFOGRAPHIC ERROR:", repr(error))
+
+            await update.callback_query.message.reply_text(
+                "❌ Infografika yaratishda xatolik yuz berdi."
+            )
+
+    else:
+        await update.callback_query.message.reply_text(
+            "📸 Mahsulot rasmini yuboring."
+        )
 
 
 async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -63,7 +121,7 @@ async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     path = Path("/tmp") / f"autocard_{update.effective_user.id}.jpg"
 
     await telegram_file.download_to_drive(path)
-
+    context.user_data["image_path"] = str(path)
     image_data = base64.b64encode(path.read_bytes()).decode()
 
     prompt = """
