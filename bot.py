@@ -152,7 +152,6 @@ benefits:
 
 Javobni faqat JSON ko‘rinishida qaytaring.
 JSON tashqarisida hech qanday izoh yozmang.
-"""
 
 {
 "title_uz":"",
