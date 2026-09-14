@@ -43,7 +43,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.callback_query.answer()
+    try:
+        await update.callback_query.answer()
+    except Exception:
+        pass
+
     await update.callback_query.message.reply_text(
         "📸 Mahsulot rasmini yuboring."
     )
