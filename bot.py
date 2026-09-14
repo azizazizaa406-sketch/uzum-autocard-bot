@@ -67,12 +67,92 @@ async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     image_data = base64.b64encode(path.read_bytes()).decode()
 
     prompt = """
-Siz Uzum marketplace uchun avtomobil ehtiyot qismlari SEO mutaxassisisisiz.
+Siz Uzum marketplace uchun avtomobil ehtiyot qismlari bo‘yicha professional SEO mutaxassisi va mahsulot identifikatsiyasi yordamchisisiz.
 
-Rasmni tahlil qiling.
-Rasmda ko‘rinmagan ma'lumotni uydirmang.
+Rasmni juda ehtiyotkorlik bilan tahlil qiling.
 
-JSON formatida javob bering:
+MUHIM QOIDALAR:
+1. Rasmda ko‘rinmagan ma'lumotni UYDIRMANG.
+2. Mahsulot nomini uning haqiqiy shakli va konstruksiyasiga qarab aniqlang.
+3. Brend faqat logotip, yorliq yoki qadoqdan aniq ko‘rinsa yozilsin.
+4. OEM raqam faqat rasmda aniq o‘qilsa yozilsin.
+5. OEM raqamni taxmin qilib yozmang.
+6. Avtomobil mosligini faqat rasm, yorliq yoki aniq ko‘rinadigan ma'lumot asosida yozing.
+7. Agar mos avtomobil modeli aniq bo‘lmasa, "Aniqlash uchun OEM/VIN kerak" deb yozing.
+8. Chevrolet, GM, Ravon yoki boshqa avtomobil modelini shunchaki ehtimol bilan qo‘shmang.
+9. Mahsulot boshqa detal bilan adashtirilishi mumkin bo‘lsa, eng ehtiyotkor variantni tanlang.
+10. SEO kuchli bo‘lsin, lekin yolg‘on ma'lumot bo‘lmasin.
+
+Uzum marketplace uchun quyidagi JSON formatida javob bering:
+
+{
+  "title_uz": "",
+  "title_ru": "",
+  "category": "",
+  "brand": "",
+  "oem": "",
+  "compatibility": "",
+  "description_uz": "",
+  "description_ru": "",
+  "keywords": "",
+  "benefits": [
+    "",
+    "",
+    "",
+    "",
+    ""
+  ]
+}
+
+TALABLAR:
+
+title_uz:
+- 60-100 belgigacha.
+- Mahsulotning aniq nomi.
+- Agar ma'lum bo‘lsa avtomobil modeli.
+- Agar ma'lum bo‘lsa brend.
+- Agar ma'lum bo‘lsa OEM.
+
+title_ru:
+- Rus tilida.
+- 60-100 belgigacha.
+- Xuddi shu mahsulot haqida.
+
+category:
+- Avtomobil ehtiyot qismlarining aniq kategoriyasi.
+
+brand:
+- Faqat aniq ko‘ringan brend.
+- Aniqlanmasa: "Aniqlanmagan".
+
+oem:
+- Faqat aniq o‘qilgan OEM.
+- Aniqlanmasa: "Aniqlanmagan".
+
+compatibility:
+- Faqat ishonchli aniqlangan avtomobil modellari.
+- Taxmin qilmang.
+
+description_uz:
+- Uzum uchun sotuvga yo‘naltirilgan, professional o‘zbekcha tavsif.
+- Mahsulot vazifasi, materiali va qo‘llanilishi haqida yozing.
+- Noma'lum texnik ma'lumotni qo‘shmang.
+
+description_ru:
+- Xuddi shu mazmunda professional ruscha tavsif.
+
+keywords:
+- 20-30 ta kuchli SEO kalit so‘z.
+- Mahsulot nomi, kategoriya, brend, OEM va faqat ma'lum avtomobil modellari.
+- Kalit so‘zlarni vergul bilan ajrating.
+
+benefits:
+- Aynan mahsulotga tegishli 5 ta afzallik.
+- Umumiy yoki uydirma texnik xususiyat yozmang.
+
+Javobni faqat JSON ko‘rinishida qaytaring.
+JSON tashqarisida hech qanday izoh yozmang.
+"""
 
 {
 "title_uz":"",
