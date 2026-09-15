@@ -253,7 +253,7 @@ JSON tashqarisida hech qanday izoh yozmang.
         data = json.loads(
             text[start_index:end_index + 1]
         )
-
+        context.user_data["product_data"] = data
         benefits = "\n".join(
             "✅ " + item
             for item in data.get("benefits", [])
