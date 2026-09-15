@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import threading
+from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
 
 from flask import Flask
