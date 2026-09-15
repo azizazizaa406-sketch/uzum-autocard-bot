@@ -42,7 +42,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
 
-
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await update.callback_query.answer()
@@ -51,12 +50,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if update.callback_query.data == "infographic":
         await update.callback_query.message.reply_text(
-            "🎨 Infografika tayyorlanmoqda...\n\n"
+            "🎨 Premium 1080×1440 infografika tayyorlanmoqda...\n\n"
             "⏳ Bir oz kuting."
         )
 
         try:
             image_path = context.user_data.get("image_path")
+            data = context.user_data.get("product_data", {})
 
             if not image_path:
                 await update.callback_query.message.reply_text(
@@ -64,27 +64,27 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
 
+            # AI orqali mahsulotning toza professional ko‘rinishini yaratish
             result = client.images.edit(
                 model="gpt-image-2",
                 image=open(image_path, "rb"),
                 prompt="""
-Create a premium automotive marketplace product image.
+Create a premium automotive spare parts product photo.
 
 IMPORTANT:
-- Preserve the exact product from the reference image.
-- Do not change the product shape, construction, holes, mounting points,
+- Preserve the exact original product.
+- Do not change its shape, construction, holes, mounting points,
   dimensions, labels or visible details.
 - Remove the original background.
-- Put the product on a clean #EFEFEF light gray background.
+- Put the product on a clean light gray #EFEFEF background.
 - Product centered and large.
 - Professional studio lighting.
-- Realistic shadows and reflections.
-- Premium Korean automotive parts advertising style.
+- Realistic shadows.
+- Premium Korean / GM automotive parts advertising style.
 - Clean commercial product photography.
-- Vertical marketplace composition.
-- NO text.
-- NO logos.
-- NO watermark.
+- No text.
+- No logos.
+- No watermark.
 """,
                 size="1024x1536",
                 quality="medium",
@@ -94,9 +94,126 @@ IMPORTANT:
 
             from io import BytesIO
 
+            # AI rasmini ochish
+            product_image = Image.open(BytesIO(image_bytes)).convert("RGB")
+
+            # Aniq Uzum o‘lchami
+            canvas = Image.new("RGB", (1080, 1440), "#EFEFEF")
+
+            # Mahsulot rasmini 1080x1440 nisbatga moslashtirish
+            product_image.thumbnail((980, 1030))
+
+            x = (1080 - product_image.width) // 2
+            y = 230
+
+            canvas.paste(product_image, (x, y))
+
+            draw = ImageDraw.Draw(canvas)
+
+            # Shriftlar
+            font_bold = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                42
+            )
+
+            font_title = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                30
+            )
+
+            font_text = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                25
+            )
+
+            # Mahsulot nomi
+            title = data.get("title_uz", "Avtomobil ehtiyot qismi")
+
+            if len(title) > 55:
+                title = title[:55] + "..."
+
+            draw.text(
+                (50, 45),
+                title,
+                font=font_bold,
+                fill="#111111"
+            )
+
+            # OEM
+            oem = data.get("oem", "Aniqlanmagan")
+
+            draw.text(
+                (50, 105),
+                f"OEM: {oem}",
+                font=font_title,
+                fill="#333333"
+            )
+
+            # Mosligi
+            compatibility = data.get(
+                "compatibility",
+                "Aniqlash uchun OEM/VIN kerak"
+            )
+
+            draw.text(
+                (50, 1130),
+                "🚗 MOSLIGI",
+                font=font_title,
+                fill="#111111"
+            )
+
+            # Moslik matnini qisqartirish
+            if len(compatibility) > 75:
+                compatibility = compatibility[:75] + "..."
+
+            draw.text(
+                (50, 1175),
+                compatibility,
+                font=font_text,
+                fill="#333333"
+            )
+
+            # Afzalliklar
+            benefits = data.get("benefits", [])
+
+            draw.text(
+                (50, 1230),
+                "⭐ AFZALLIKLARI",
+                font=font_title,
+                fill="#111111"
+            )
+
+            y_text = 1270
+
+            for benefit in benefits[:4]:
+                if len(benefit) > 55:
+                    benefit = benefit[:55] + "..."
+
+                draw.text(
+                    (55, y_text),
+                    "✓ " + benefit,
+                    font=font_text,
+                    fill="#222222"
+                )
+
+                y_text += 38
+
+            # Tayyor rasmni saqlash
+            output_path = Path("/tmp") / (
+                f"infographic_{update.effective_user.id}.jpg"
+            )
+
+            canvas.save(
+                output_path,
+                "JPEG",
+                quality=95,
+                optimize=True
+            )
+
+            # Telegramga yuborish
             await update.callback_query.message.reply_photo(
-                photo=BytesIO(image_bytes),
-                caption="🎨 Premium infografika tayyor!"
+                photo=open(output_path, "rb"),
+                caption="🎨 Premium Uzum infografika — 1080×1440"
             )
 
         except Exception as error:
