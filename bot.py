@@ -49,9 +49,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pass
 
     if update.callback_query.data == "infographic":
-        await update.callback_query.message.reply_text(
-            "🎨 Premium 1080×1440 infografika tayyorlanmoqda...\n\n"
-            "⏳ Bir oz kuting."
+        message = update.callback_query.message
+
+        await message.reply_text(
+            "Premium 1080×1440 infografika tayyorlanmoqda...\n\n"
+            "Bir oz kuting."
         )
 
         try:
@@ -59,12 +61,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             data = context.user_data.get("product_data", {})
 
             if not image_path:
-                await update.callback_query.message.reply_text(
-                    "❌ Mahsulot rasmi topilmadi. Rasmni qayta yuboring."
+                await message.reply_text(
+                    "Mahsulot rasmi topilmadi. Rasmni qayta yuboring."
                 )
                 return
 
-            # AI orqali mahsulotning toza professional ko‘rinishini yaratish
+            # AI orqali mahsulotning professional ko‘rinishini yaratish
             result = client.images.edit(
                 model="gpt-image-2",
                 image=open(image_path, "rb"),
@@ -73,14 +75,16 @@ Create a premium automotive spare parts product photo.
 
 IMPORTANT:
 - Preserve the exact original product.
-- Do not change its shape, construction, holes, mounting points,
-  dimensions, labels or visible details.
+- Do NOT change the product design.
+- Do NOT add or remove parts.
+- Do NOT change holes, rollers, spring, mounting points,
+  dimensions, shape or construction.
 - Remove the original background.
-- Put the product on a clean light gray #EFEFEF background.
-- Product centered and large.
+- Place the exact product on a clean light gray #EFEFEF background.
+- Product must be large and centered.
 - Professional studio lighting.
-- Realistic shadows.
-- Premium Korean / GM automotive parts advertising style.
+- Realistic natural shadow.
+- Premium Korean / GM automotive spare parts advertising style.
 - Clean commercial product photography.
 - No text.
 - No logos.
@@ -90,28 +94,38 @@ IMPORTANT:
                 quality="medium",
             )
 
-            image_bytes = base64.b64decode(result.data[0].b64_json)
+            image_bytes = base64.b64decode(
+                result.data[0].b64_json
+            )
 
             from io import BytesIO
 
-            # AI rasmini ochish
-            product_image = Image.open(BytesIO(image_bytes)).convert("RGB")
+            product_image = Image.open(
+                BytesIO(image_bytes)
+            ).convert("RGB")
 
-            # Aniq Uzum o‘lchami
-            canvas = Image.new("RGB", (1080, 1440), "#EFEFEF")
+            # 1080x1440 canvas
+            canvas = Image.new(
+                "RGB",
+                (1080, 1440),
+                "#EFEFEF"
+            )
 
-            # Mahsulot rasmini 1080x1440 nisbatga moslashtirish
-            product_image.thumbnail((980, 1030))
+            # Mahsulotni kattaroq qilish
+            product_image.thumbnail((900, 900))
 
             x = (1080 - product_image.width) // 2
-            y = 230
+            y = 250
 
-            canvas.paste(product_image, (x, y))
+            canvas.paste(
+                product_image,
+                (x, y)
+            )
 
             draw = ImageDraw.Draw(canvas)
 
             # Shriftlar
-            font_bold = ImageFont.truetype(
+            font_big = ImageFont.truetype(
                 "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
                 42
             )
@@ -123,82 +137,154 @@ IMPORTANT:
 
             font_text = ImageFont.truetype(
                 "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                25
+                24
             )
 
-            # Mahsulot nomi
-            title = data.get("title_uz", "Avtomobil ehtiyot qismi")
+            font_small = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                22
+            )
 
-            if len(title) > 55:
-                title = title[:55] + "..."
+            # --------------------------------
+            # TITLE
+            # --------------------------------
+
+            title = data.get(
+                "title_uz",
+                "Avtomobil ehtiyot qismi"
+            )
+
+            # Juda uzun sarlavhani 2 qatorga bo‘lish
+            words = title.split()
+
+            line1 = ""
+            line2 = ""
+
+            for word in words:
+                test = (line1 + " " + word).strip()
+
+                if draw.textbbox(
+                    (0, 0),
+                    test,
+                    font=font_big
+                )[2] <= 980:
+                    line1 = test
+                else:
+                    line2 = (line2 + " " + word).strip()
 
             draw.text(
-                (50, 45),
-                title,
-                font=font_bold,
+                (50, 40),
+                line1,
+                font=font_big,
                 fill="#111111"
             )
 
-            # OEM
-            oem = data.get("oem", "Aniqlanmagan")
+            if line2:
+                draw.text(
+                    (50, 88),
+                    line2,
+                    font=font_big,
+                    fill="#111111"
+                )
 
-            draw.text(
-                (50, 105),
-                f"OEM: {oem}",
-                font=font_title,
-                fill="#333333"
+            # --------------------------------
+            # OEM BLOCK
+            # --------------------------------
+
+            oem = data.get(
+                "oem",
+                "Aniqlanmagan"
             )
 
-            # Mosligi
+            draw.rounded_rectangle(
+                (50, 145, 1030, 205),
+                radius=14,
+                fill="#FFFFFF"
+            )
+
+            draw.text(
+                (75, 160),
+                f"OEM  |  {oem}",
+                font=font_title,
+                fill="#111111"
+            )
+
+            # --------------------------------
+            # MOSLIGI
+            # --------------------------------
+
+            draw.rounded_rectangle(
+                (50, 1110, 1030, 1210),
+                radius=16,
+                fill="#FFFFFF"
+            )
+
+            draw.text(
+                (75, 1125),
+                "MOSLIGI",
+                font=font_title,
+                fill="#B00020"
+            )
+
             compatibility = data.get(
                 "compatibility",
                 "Aniqlash uchun OEM/VIN kerak"
             )
 
-            draw.text(
-                (50, 1130),
-                "🚗 MOSLIGI",
-                font=font_title,
-                fill="#111111"
-            )
-
-            # Moslik matnini qisqartirish
-            if len(compatibility) > 75:
-                compatibility = compatibility[:75] + "..."
+            if len(compatibility) > 80:
+                compatibility = compatibility[:80] + "..."
 
             draw.text(
-                (50, 1175),
+                (75, 1168),
                 compatibility,
-                font=font_text,
+                font=font_small,
                 fill="#333333"
             )
 
-            # Afzalliklar
-            benefits = data.get("benefits", [])
+            # --------------------------------
+            # AFZALLIKLARI
+            # --------------------------------
 
-            draw.text(
-                (50, 1230),
-                "⭐ AFZALLIKLARI",
-                font=font_title,
-                fill="#111111"
+            draw.rounded_rectangle(
+                (50, 1230, 1030, 1395),
+                radius=16,
+                fill="#FFFFFF"
             )
 
-            y_text = 1270
+            draw.text(
+                (75, 1245),
+                "AFZALLIKLARI",
+                font=font_title,
+                fill="#B00020"
+            )
+
+            benefits = data.get(
+                "benefits",
+                []
+            )
+
+            y_text = 1290
 
             for benefit in benefits[:4]:
-                if len(benefit) > 55:
-                    benefit = benefit[:55] + "..."
 
+                if len(benefit) > 62:
+                    benefit = benefit[:62] + "..."
+
+                # Oddiy belgidan foydalanamiz —
+                # emoji kvadrat muammosi bo‘lmaydi
                 draw.text(
-                    (55, y_text),
-                    "✓ " + benefit,
-                    font=font_text,
+                    (78, y_text),
+                    "• " + benefit,
+                    font=font_small,
                     fill="#222222"
                 )
 
-                y_text += 38
+                y_text += 30
 
-            # Tayyor rasmni saqlash
+            # --------------------------------
+            # SAVE
+            # --------------------------------
+
             output_path = Path("/tmp") / (
                 f"infographic_{update.effective_user.id}.jpg"
             )
@@ -211,21 +297,26 @@ IMPORTANT:
             )
 
             # Telegramga yuborish
-            await update.callback_query.message.reply_photo(
-                photo=open(output_path, "rb"),
-                caption="🎨 Premium Uzum infografika — 1080×1440"
-            )
+            with open(output_path, "rb") as photo_file:
+                await message.reply_photo(
+                    photo=photo_file,
+                    caption="Premium Uzum infografika — 1080×1440"
+                )
 
         except Exception as error:
-            print("INFOGRAPHIC ERROR:", repr(error))
 
-            await update.callback_query.message.reply_text(
-                "❌ Infografika yaratishda xatolik yuz berdi."
+            print(
+                "INFOGRAPHIC ERROR:",
+                repr(error)
+            )
+
+            await message.reply_text(
+                "Infografika yaratishda xatolik yuz berdi."
             )
 
     else:
         await update.callback_query.message.reply_text(
-            "📸 Mahsulot rasmini yuboring."
+            "Mahsulot rasmini yuboring."
         )
 
 
